@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   db:
@@ -22,5 +22,7 @@ services:
       - .env
     environment:
       - TZ=America/Los_Angeles
+    shm_size: '2gb'
     volumes:
+
       - ./wa_sessions:/usr/src/app/.wwebjs_auth

@@ -1,29 +1,63 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
+
+// =================================================================
+// CLEANUP: Hapus lock file Chromium agar tidak error saat restart
+// =================================================================
+const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session');
+if (fs.existsSync(sessionPath)) {
+    try {
+        const files = fs.readdirSync(sessionPath);
+        files.forEach(file => {
+            if (file.includes('Singleton')) {
+                const filePath = path.join(sessionPath, file);
+                try {
+                    // Gunakan lstatSync + unlinkSync untuk menghapus symlink/file lock
+                    fs.unlinkSync(filePath);
+                    console.log(`[System] Berhasil menghapus lock file: ${file}`);
+                } catch (err) {
+                    // Abaikan jika gagal
+                }
+            }
+        });
+    } catch (err) {
+        console.error('[System] Gagal membaca direktori session:', err.message);
+    }
+}
+
+
 
 const client = new Client({
     authStrategy: new LocalAuth(),
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1014587000-alpha.html',
-    },
     puppeteer: { 
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-        protocolTimeout: 60000, // Menunggu browser hingga 60 detik (mencegah timeout)
+        executablePath: '/usr/bin/chromium',
+        headless: true,
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote'
+            '--disable-dev-shm-usage'
         ] 
     }
 });
 
-let isQueueRunning = false; // Pengaman agar loop hanya satu
+client.on('loading_screen', (percent, message) => {
+    console.log('[System] LOADING SCREEN:', percent, message);
+});
+
+client.on('qr', (qr) => {
+    console.log('[System] QR Code received, please scan.');
+    qrcode.generate(qr, { small: true });
+});
+
+
+let isQueueRunning = false; 
 const messageQueue = [];
+const MAX_CONCURRENT = 2; // Maksimal 2 pesan diproses AI secara bersamaan (Aman untuk Ollama)
+let currentProcessing = 0;
 
 // =================================================================
 // LAPIS 1: BLACKLIST KATA KUNCI (Langsung terdeteksi sebagai SPAM)
@@ -39,7 +73,8 @@ const blacklistWords = [
 // =================================================================
 const whitelistWords = [
     "monsep", "sgmail", "id old", "zodiac", "vk fb", "plat",
-    "jual akun", "minus", "take", "sold", "nego", "rekber", "mlbb", "pubg"
+    "jual akun", "minus", "take", "sold", "nego", "rekber", "mlbb", "pubg",
+    "pake joki"
 ];
 
 client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
@@ -63,59 +98,66 @@ client.on('message_create', (msg) => {
     }
 });
 
-// SIKLUS ANTREAN (Lambat dan Terkontrol)
+// SIKLUS ANTREAN (Paralel dan Cepat)
 async function processQueue() {
     while (true) {
-        if (messageQueue.length > 0) {
+        if (messageQueue.length > 0 && currentProcessing < MAX_CONCURRENT) {
             const msg = messageQueue.shift();
-            let isSpam = false;
-            let filterType = "";
-
-            try {
-                const chat = await msg.getChat();
-                const tipeObrolan = chat.isGroup ? "GRUP" : "PRIBADI";
-                const textLower = msg.body.toLowerCase();
-
-                // 1. PENGECEKAN LAPIS 1: KEYWORD BLACKLIST
-                if (blacklistWords.some(word => textLower.includes(word))) {
-                    isSpam = true;
-                    filterType = "Keyword Blacklist";
-                } 
-                // 2. PENGECEKAN LAPIS 1.5: WHITELIST 
-                else if (whitelistWords.some(word => textLower.includes(word))) {
-                    isSpam = false; 
-                }
-                // 3. PENGECEKAN LAPIS 2: AI LOKAL (Few-Shot Prompting)
-                // REVISI: Batas karakter dinaikkan menjadi 1500
-                else if (textLower.length > 0 && textLower.length <= 1500) {
-                    isSpam = await checkWithLocalAI(msg.body);
-                    if (isSpam) filterType = "AI Analysis";
-                }
-
-                // AKSI: HANYA LOGGING INTERNAL 
-                if (isSpam) {
-                    console.log(`\n⚠️ [TERDETEKSI SPAM - ${filterType}]`);
-                    console.log(`Lokasi   : Obrolan ${tipeObrolan}`);
-                    console.log(`Pengirim : ${msg.from}`);
-                    console.log(`Pesan    : "${msg.body.substring(0, 100).replace(/\n/g, " ")}..."`);
-                    
-                    try {
-                        // Menghapus pesan hanya untuk saya (Delete for Me)
-                        await msg.delete(); 
-                        console.log(`Tindakan : ✅ PESAN BERHASIL DIHAPUS (Delete for Me)\n`);
-                    } catch (delErr) {
-                        console.log(`Tindakan : ❌ GAGAL MENGHAPUS\n`);
-                    }
-                } else {
-                    // REVISI: Log agar Anda tahu sistem membaca pesan tanpa menghapus
-                    console.log(`[AMAN] Memeriksa pesan dari ${msg.from}`);
-                }
-
-            } catch (err) {
-                console.error(`❌ Gagal memproses pesan:`, err.message);
-            }
+            currentProcessing++;
+            
+            // Proses pesan tanpa menunggu selesai (Paralel)
+            handleMessage(msg).finally(() => {
+                currentProcessing--;
+            });
+        } else {
+            // Tunggu sebentar jika antrean kosong atau slot penuh
+            await new Promise(r => setTimeout(r, 100));
         }
-        await new Promise(r => setTimeout(r, 500));
+    }
+}
+
+async function handleMessage(msg) {
+    try {
+        const isGroup = msg.from.endsWith('@g.us');
+        const tipeObrolan = isGroup ? "GRUP" : "PRIBADI";
+        const textLower = msg.body.toLowerCase();
+        
+        let isSpam = false;
+        let filterType = "";
+
+        // 1. PENGECEKAN LAPIS 1: KEYWORD BLACKLIST
+        if (blacklistWords.some(word => textLower.includes(word))) {
+            isSpam = true;
+            filterType = "Keyword Blacklist";
+        } 
+        // 2. PENGECEKAN LAPIS 1.5: WHITELIST 
+        else if (whitelistWords.some(word => textLower.includes(word))) {
+            isSpam = false; 
+        }
+        // 3. PENGECEKAN LAPIS 2: AI LOKAL
+        else if (textLower.length > 0 && textLower.length <= 1500) {
+            isSpam = await checkWithLocalAI(msg.body);
+            if (isSpam) filterType = "AI Analysis";
+        }
+
+        if (isSpam) {
+            console.log(`\n⚠️ [TERDETEKSI SPAM - ${filterType}]`);
+            console.log(`Lokasi   : Obrolan ${tipeObrolan}`);
+            console.log(`Pengirim : ${msg.from}`);
+            console.log(`Pesan    : "${msg.body.substring(0, 100).replace(/\n/g, " ")}..."`);
+            
+            try {
+                await msg.delete(); 
+                console.log(`Tindakan : ✅ PESAN BERHASIL DIHAPUS\n`);
+            } catch (delErr) {
+                console.log(`Tindakan : ❌ GAGAL MENGHAPUS\n`);
+            }
+        } else {
+            console.log(`[AMAN] ${tipeObrolan} | Dari: ${msg.from}`);
+        }
+
+    } catch (err) {
+        console.error(`❌ Gagal memproses pesan:`, err.message);
     }
 }
 
@@ -152,16 +194,17 @@ Pesan: "${text}"
 Jawaban:`;
         
         const res = await axios.post('http://host.docker.internal:11434/api/generate', {
-            model: 'qwen2.5:7b', // PASTIKAN SESUAI DENGAN MODEL YANG ANDA PAKAI
+            model: 'qwen2.5:7b',
             prompt: prompt,
             stream: false,
             options: { 
-                temperature: 0.0, // Wajib 0 agar tidak berhalusinasi
-                top_k: 1,         // Memaksa AI mengambil prediksi kata paling absolut
+                temperature: 0.0,
+                num_predict: 2, // HANYA prediksi 2 token (YA/TIDAK), sangat mempercepat respon
+                top_k: 1,
                 top_p: 0.1
             }
         }, {
-            timeout: 20000 // REVISI: Waktu tunggu AI diubah menjadi 20 detik
+            timeout: 10000 // Waktu tunggu dikurangi karena num_predict sangat cepat
         });
 
         // Membersihkan jawaban AI untuk mencari kata YA di awal kalimat
@@ -178,4 +221,7 @@ Jawaban:`;
     }
 }
 
-client.initialize();
+console.log('[System] Initializing client in 5 seconds...');
+setTimeout(() => {
+    client.initialize();
+}, 5000);

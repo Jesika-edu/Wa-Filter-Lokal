@@ -1,5 +1,28 @@
-node_modules
-wa_sessions
-pg_data
-npm-debug.log
+# Dependencies
+node_modules/
+
+# WhatsApp Sessions (Sangat Penting untuk Keamanan)
+wa_sessions/
+wa_sessions_backup/
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Database data (Postgres)
+pg_data/
+
+# Environment variables (Sangat Penting untuk Keamanan)
 .env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+walkthrough.md

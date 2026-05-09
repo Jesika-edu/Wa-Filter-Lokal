@@ -1,5 +1,7 @@
 node_modules
 wa_sessions
+wa_sessions_backup
 pg_data
 npm-debug.log
 .env
+Singleton*
