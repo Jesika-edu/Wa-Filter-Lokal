@@ -1,0 +1,5 @@
+node_modules
+wa_sessions
+pg_data
+npm-debug.log
+.env
