@@ -63,7 +63,7 @@ let currentProcessing = 0;
 // LAPIS 1: BLACKLIST KATA KUNCI (Langsung terdeteksi sebagai SPAM)
 // =================================================================
 const blacklistWords = [
-    "jasa joki", "joki tugas", "jurnal sinta", "turnitin", 
+    "jasa joki", "joki tugas", "turnitin", 
     "joki skripsi", "pengerjaan soal uts", "jasa pengerjaan",
     "bantu kerjain tugas"
 ];
@@ -74,7 +74,7 @@ const blacklistWords = [
 const whitelistWords = [
     "monsep", "sgmail", "id old", "zodiac", "vk fb", "plat",
     "jual akun", "minus", "take", "sold", "nego", "rekber", "mlbb", "pubg",
-    "pake joki"
+    "pake joki",
 ];
 
 client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
@@ -118,6 +118,15 @@ async function processQueue() {
 
 async function handleMessage(msg) {
     try {
+        // AMBIL DATA KONTAK
+        const contact = await msg.getContact();
+        
+        // JIKA NOMOR TERSIMPAN DI KONTAK, ABAIKAN FILTER (WHITELIST)
+        if (contact.isMyContact) {
+            console.log(`[SKIP] Kontak Tersimpan: ${contact.name || contact.number} | Skip Filter`);
+            return;
+        }
+
         const isGroup = msg.from.endsWith('@g.us');
         const tipeObrolan = isGroup ? "GRUP" : "PRIBADI";
         const textLower = msg.body.toLowerCase();
@@ -143,7 +152,7 @@ async function handleMessage(msg) {
         if (isSpam) {
             console.log(`\n⚠️ [TERDETEKSI SPAM - ${filterType}]`);
             console.log(`Lokasi   : Obrolan ${tipeObrolan}`);
-            console.log(`Pengirim : ${msg.from}`);
+            console.log(`Pengirim : ${msg.from} (${contact.pushname || 'Unknown'})`);
             console.log(`Pesan    : "${msg.body.substring(0, 100).replace(/\n/g, " ")}..."`);
             
             try {
@@ -153,7 +162,7 @@ async function handleMessage(msg) {
                 console.log(`Tindakan : ❌ GAGAL MENGHAPUS\n`);
             }
         } else {
-            console.log(`[AMAN] ${tipeObrolan} | Dari: ${msg.from}`);
+            console.log(`[AMAN] ${tipeObrolan} | Dari: ${msg.from} (${contact.pushname || 'Non-Kontak'})`);
         }
 
     } catch (err) {
