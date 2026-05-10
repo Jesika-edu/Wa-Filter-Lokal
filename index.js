@@ -4,6 +4,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const { saveLog } = require('./database');
 
 // =================================================================
 // CLEANUP: Hapus lock file Chromium agar tidak error saat restart
@@ -124,6 +125,13 @@ async function handleMessage(msg) {
         // JIKA NOMOR TERSIMPAN DI KONTAK, ABAIKAN FILTER (WHITELIST)
         if (contact.isMyContact) {
             console.log(`[SKIP] Kontak Tersimpan: ${contact.name || contact.number} | Skip Filter`);
+            await saveLog({
+                sender: msg.from,
+                sender_name: contact.name || contact.number,
+                message: msg.body,
+                classification: 'SKIP',
+                reason: 'Kontak Tersimpan'
+            });
             return;
         }
 
@@ -165,6 +173,15 @@ async function handleMessage(msg) {
             console.log(`[AMAN] ${tipeObrolan} | Dari: ${msg.from} (${contact.pushname || 'Non-Kontak'})`);
         }
 
+        // Simpan log ke database untuk dashboard
+        await saveLog({
+            sender: msg.from,
+            sender_name: contact.pushname || contact.name,
+            message: msg.body,
+            classification: isSpam ? 'JOKI' : 'SAFE',
+            reason: filterType || 'AI Analysis'
+        });
+
     } catch (err) {
         console.error(`❌ Gagal memproses pesan:`, err.message);
     }
@@ -202,7 +219,8 @@ ANALISIS PESAN BERIKUT:
 Pesan: "${text}"
 Jawaban:`;
         
-        const res = await axios.post('http://host.docker.internal:11434/api/generate', {
+        const ollamaUrl = process.env.OLLAMA_URL || 'http://host.docker.internal:11434/api/generate';
+        const res = await axios.post(ollamaUrl, {
             model: 'qwen2.5:7b',
             prompt: prompt,
             stream: false,

@@ -26,3 +26,15 @@ services:
     volumes:
 
       - ./wa_sessions:/usr/src/app/.wwebjs_auth
+
+  wa-dashboard:
+    build: .
+    container_name: wa-filter-dashboard
+    command: node dashboard.js
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
