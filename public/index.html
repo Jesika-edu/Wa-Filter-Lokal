@@ -155,17 +155,17 @@
                         <div style="overflow-x: auto;">
                             <table style="table-layout: fixed; width: 100%; border-collapse: collapse;">
                                 <colgroup>
-                                    <col style="width: 160px;">
-                                    <col style="width: 200px;">
+                                    <col style="width: 140px;">
+                                    <col style="width: 180px;">
                                     <col style="width: auto;">
-                                    <col style="width: 120px;">
+                                    <col style="width: 140px;">
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th style="text-align: left; padding: 1rem;">TIME</th>
-                                        <th style="text-align: left; padding: 1rem;">SENDER</th>
-                                        <th style="text-align: left; padding: 1rem;">MESSAGE</th>
-                                        <th style="text-align: right; padding: 1rem;">STATUS</th>
+                                        <th>TIME</th>
+                                        <th>SENDER</th>
+                                        <th>MESSAGE</th>
+                                        <th>STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="full-log-list">
@@ -215,7 +215,7 @@
                                 </div>
                                 <div style="padding-left: 3rem;">
                                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Salin file <code>.env.example</code> menjadi <code>.env</code> dan sesuaikan kredensial database Anda.</p>
-                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; line-height: 1.7;">
+                                    <div class="monospace-block" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; line-height: 1.7; overflow-x: auto;">
                                         DB_USER=postgres<br>
                                         DB_PASSWORD=yourpassword<br>
                                         DB_NAME=wa_classifier<br>
@@ -232,7 +232,7 @@
                                 </div>
                                 <div style="padding-left: 3rem;">
                                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Gunakan satu perintah untuk membangun dan menjalankan semua layanan (Database, Engine, Dashboard).</p>
-                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                                    <div class="monospace-block" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; overflow-x: auto;">
                                         <code>docker compose up -d --build</code>
                                         <i data-lucide="copy" style="width: 18px; cursor: pointer; opacity: 0.5;"></i>
                                     </div>
@@ -247,7 +247,7 @@
                                 </div>
                                 <div style="padding-left: 3rem;">
                                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Pantau log docker untuk mendapatkan QR Code, lalu scan menggunakan aplikasi WhatsApp Anda.</p>
-                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem;">
+                                    <div class="monospace-block" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;">
                                         <span style="color: #94a3b8;"># Lihat log bot</span><br>
                                         docker logs -f wa-filter-bot
                                     </div>

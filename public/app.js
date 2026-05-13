@@ -80,20 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const isJoki = log.classification === 'JOKI';
         return `
             <tr class="log-table-row ${isNew ? 'new-row-pulse' : ''}">
-                <td class="log-time-cell" style="vertical-align: top;">
+                <td class="log-time-cell" data-label="TIME" style="vertical-align: top;">
                     <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">${new Date(log.timestamp).toLocaleDateString()}</div>
                     <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-main);">${new Date(log.timestamp).toLocaleTimeString()}</div>
                 </td>
-                <td class="log-sender-cell" style="vertical-align: top;">
-                    <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-main);">${log.sender_name || 'Anonymous'}</div>
+                <td class="log-sender-cell" data-label="SENDER" style="vertical-align: top;">
+                    <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.375rem;">${log.sender_name || 'Anonymous'}</div>
                     <div style="font-size: 0.75rem; color: var(--text-muted);">${log.sender.split('@')[0]}</div>
                 </td>
-                <td class="log-message-cell" style="vertical-align: top;">
+                <td class="log-message-cell" data-label="MESSAGE" style="vertical-align: top;">
                     <div class="message-truncate">
                         ${log.message}
                     </div>
                 </td>
-                <td class="log-status-cell" style="vertical-align: top;">
+                <td class="log-status-cell" data-label="STATUS" style="vertical-align: top;">
                     <span class="status-badge ${isJoki ? 'status-joki' : (log.classification === 'SAFE' ? 'status-safe' : 'status-skip')}">
                         ${log.classification}
                     </span>
@@ -109,17 +109,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const bgColor = isJoki ? '#fef2f2' : (log.classification === 'SAFE' ? '#ecfdf5' : '#fffbeb');
         
         return `
-            <div class="mini-log-item" style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); transition: background-color 0.2s;">
-                <div style="display: flex; align-items: center; gap: 1.25rem; min-width: 0;">
-                    <div style="height: 44px; width: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background-color: ${bgColor};">
-                        <i data-lucide="${icon}" style="width: 20px; height: 20px; color: ${iconColor};"></i>
+            <div class="mini-log-item">
+                <div class="mini-log-content">
+                    <div class="mini-log-icon" style="background-color: ${bgColor};">
+                        <i data-lucide="${icon}" style="color: ${iconColor};"></i>
                     </div>
-                    <div style="overflow: hidden;">
-                        <p style="font-size: 0.9375rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.125rem;">${log.sender_name || 'Anonymous'}</p>
-                        <p style="font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px;">${log.message}</p>
+                    <div class="mini-log-info">
+                        <p class="mini-log-name">${log.sender_name || 'Anonymous'}</p>
+                        <p class="mini-log-msg">${log.message}</p>
                     </div>
                 </div>
-                <div style="flex-shrink: 0; margin-left: 1rem;">
+                <div class="mini-log-status">
                     <span class="status-badge ${isJoki ? 'status-joki' : (log.classification === 'SAFE' ? 'status-safe' : 'status-skip')}">
                         ${log.classification}
                     </span>
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const logs = await logsRes.json();
             
             if (miniLogList) {
-                miniLogList.innerHTML = logs.slice(0, 5).map(createMiniLogRow).join('') || '<div class="p-8 text-center text-gray-500">No logs found.</div>';
+                miniLogList.innerHTML = logs.slice(0, 4).map(createMiniLogRow).join('') || '<div class="p-8 text-center text-gray-500">No logs found.</div>';
             }
             if (fullLogList) {
                 fullLogList.innerHTML = logs.map(l => createLogRow(l)).join('');
@@ -165,14 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const newMiniItem = document.createElement('div');
             newMiniItem.innerHTML = createMiniLogRow(log);
             miniLogList.prepend(newMiniItem.firstElementChild);
-            if (miniLogList.children.length > 5) miniLogList.lastElementChild.remove();
+            if (miniLogList.children.length > 4) miniLogList.lastElementChild.remove();
         }
 
         // Prepend to full log
         if (fullLogList) {
             const tempTable = document.createElement('table');
             tempTable.innerHTML = createLogRow(log, true);
-            fullLogList.prepend(tempTable.firstElementChild);
+            const newRow = tempTable.querySelector('tr');
+            fullLogList.prepend(newRow);
             
             // Remove pulse after 2 seconds
             setTimeout(() => {
