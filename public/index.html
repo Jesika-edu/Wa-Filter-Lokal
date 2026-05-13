@@ -1,167 +1,174 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-50">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Log Classifier | Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>WA Classifier | Premium Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
-        .tab-active { color: #2563eb; border-bottom: 2px solid #2563eb; }
-        .status-joki { background-color: #fee2e2; color: #ef4444; }
-        .status-safe { background-color: #dcfce7; color: #22c55e; }
-        .status-skip { background-color: #fef3c7; color: #f59e0b; }
-    </style>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
-<body class="h-full">
-    <div class="min-h-full">
-        <!-- Navigation -->
-        <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 glass">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 flex items-center gap-2">
-                            <i data-lucide="shield-check" class="text-blue-600 w-8 h-8"></i>
-                            <span class="text-xl font-bold text-gray-900 tracking-tight">WA Classifier</span>
-                        </div>
-                        <div class="hidden sm:-my-px sm:ml-10 sm:flex sm:space-x-8 h-full">
-                            <button onclick="showTab('overview')" class="tab-btn tab-active inline-flex items-center px-1 pt-1 text-sm font-medium transition-colors" id="tab-overview">Overview</button>
-                            <button onclick="showTab('analytics')" class="tab-btn inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors" id="tab-analytics">Analytics</button>
-                            <button onclick="showTab('logs')" class="tab-btn inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors" id="tab-logs">Activity Log</button>
-                            <button onclick="showTab('guide')" class="tab-btn inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors" id="tab-guide">Guide</button>
-                        </div>
+<body>
+    <div class="app-container">
+        <!-- Overlay for mobile sidebar -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i data-lucide="shield-check" class="logo-icon"></i>
+                <span class="logo-text">WA Classifier</span>
+            </div>
+            
+            <div class="sidebar-content">
+                <!-- Store Selection -->
+                <div class="store-selector">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">C</div>
+                        <span style="font-weight: 600; font-size: 0.875rem;">Capstore</span>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-100">
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                            Live Engine
-                        </div>
-                    </div>
+                    <i data-lucide="chevrons-up-down" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+                </div>
+
+                <!-- Main Menu -->
+                <div class="sidebar-section">
+                    <h3 class="section-title">Main Menu</h3>
+                    <button class="nav-item active" onclick="showTab('overview', 'Dashboard')">
+                        <i data-lucide="layout-dashboard"></i>
+                        Dashboard
+                    </button>
+                    <button class="nav-item" onclick="showTab('analytics', 'Analytics')">
+                        <i data-lucide="bar-chart-3"></i>
+                        Analytics
+                    </button>
+                    <button class="nav-item" onclick="showTab('logs', 'Activity Log')">
+                        <i data-lucide="scroll-text"></i>
+                        Activity Log
+                    </button>
+                    <button class="nav-item" onclick="showTab('guide', 'Guide')">
+                        <i data-lucide="help-circle"></i>
+                        Guide
+                    </button>
                 </div>
             </div>
-        </nav>
+        </aside>
 
-        <main class="py-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- MAIN WRAPPER -->
+        <div class="main-wrapper">
+            <!-- TOP NAVBAR -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <button id="menu-toggle" class="menu-btn">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="breadcrumb">
+                        <span>Pages</span>
+                        <span class="breadcrumb-sep">/</span>
+                        <span id="breadcrumb-page" style="color: var(--text-main); font-weight: 500;">Dashboard</span>
+                    </div>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="live-indicator">
+                        <div class="dot"></div>
+                        Live Engine
+                    </div>
+                    
+                    <div class="user-avatar">AD</div>
+                </div>
+            </header>
+
+            <!-- CONTENT AREA -->
+            <main class="content-area">
                 
                 <!-- OVERVIEW TAB -->
-                <div id="content-overview" class="tab-content">
-                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                        <!-- Stat Card -->
-                        <div class="bg-white overflow-hidden shadow rounded-2xl border border-gray-100 p-6 transition-all hover:shadow-md">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-blue-50 p-3 rounded-xl">
-                                    <i data-lucide="mail" class="h-6 w-6 text-blue-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Total Scanned</dt>
-                                        <dd class="text-2xl font-bold text-gray-900" id="stat-total">0</dd>
-                                    </dl>
-                                </div>
+                <div id="content-overview" class="tab-content active fade-in">
+                    <div class="grid-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i data-lucide="mail"></i></div>
+                            <div class="stat-info">
+                                <dt>Total Scanned</dt>
+                                <dd id="stat-total">0</dd>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden shadow rounded-2xl border border-gray-100 p-6 transition-all hover:shadow-md">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-red-50 p-3 rounded-xl">
-                                    <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Spam (Joki) Deleted</dt>
-                                        <dd class="text-2xl font-bold text-gray-900" id="stat-joki">0</dd>
-                                    </dl>
-                                </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red"><i data-lucide="alert-triangle"></i></div>
+                            <div class="stat-info">
+                                <dt>Spam (Joki) Deleted</dt>
+                                <dd id="stat-joki">0</dd>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden shadow rounded-2xl border border-gray-100 p-6 transition-all hover:shadow-md">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-green-50 p-3 rounded-xl">
-                                    <i data-lucide="check-circle" class="h-6 w-6 text-green-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Safe Messages</dt>
-                                        <dd class="text-2xl font-bold text-gray-900" id="stat-safe">0</dd>
-                                    </dl>
-                                </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i data-lucide="check-circle"></i></div>
+                            <div class="stat-info">
+                                <dt>Safe Messages</dt>
+                                <dd id="stat-safe">0</dd>
                             </div>
                         </div>
-                        <div class="bg-white overflow-hidden shadow rounded-2xl border border-gray-100 p-6 transition-all hover:shadow-md">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 bg-amber-50 p-3 rounded-xl">
-                                    <i data-lucide="skip-forward" class="h-6 w-6 text-amber-600"></i>
-                                </div>
-                                <div class="ml-5 w-0 flex-1">
-                                    <dl>
-                                        <dt class="text-sm font-medium text-gray-500 truncate">Skipped (Contacts)</dt>
-                                        <dd class="text-2xl font-bold text-gray-900" id="stat-skip">0</dd>
-                                    </dl>
-                                </div>
+                        <div class="stat-card">
+                            <div class="stat-icon amber"><i data-lucide="skip-forward"></i></div>
+                            <div class="stat-info">
+                                <dt>Skipped (Contacts)</dt>
+                                <dd id="stat-skip">0</dd>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Recent Activity Mini Table -->
-                    <div class="mt-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-lg font-bold text-gray-900">Recent Activity</h2>
-                            <button onclick="showTab('logs')" class="text-sm font-medium text-blue-600 hover:text-blue-500">View all</button>
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h2>Recent Activity</h2>
+                            <button onclick="showTab('logs', 'Activity Log')" style="color: var(--primary); font-size: 0.875rem; font-weight: 600; background: none; border: none; cursor: pointer;">View all</button>
                         </div>
-                        <div class="bg-white shadow rounded-2xl border border-gray-100 overflow-hidden">
-                            <ul role="list" class="divide-y divide-gray-100" id="mini-log-list">
-                                <!-- Logs will be injected here -->
-                                <li class="p-8 text-center text-gray-500">No logs recorded yet.</li>
-                            </ul>
+                        <div id="mini-log-list">
+                            <!-- Logs will be injected here -->
+                            <div class="p-8 text-center text-gray-500">No logs recorded yet.</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- ANALYTICS TAB -->
-                <div id="content-analytics" class="tab-content hidden">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                            <h3 class="text-base font-semibold text-gray-900 mb-6">Detections Over Time (Last 24h)</h3>
-                            <div class="h-64">
-                                <canvas id="chart-trends"></canvas>
-                            </div>
+                <div id="content-analytics" class="tab-content fade-in">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                        <div class="chart-container">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1.5rem;">Detections Over Time (Last 24h)</h3>
+                            <div style="height: 300px;"><canvas id="chart-trends"></canvas></div>
                         </div>
-                        <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                            <h3 class="text-base font-semibold text-gray-900 mb-6">Classification Distribution</h3>
-                            <div class="h-64 flex justify-center">
-                                <canvas id="chart-pie"></canvas>
-                            </div>
+                        <div class="chart-container">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1.5rem;">Classification Distribution</h3>
+                            <div style="height: 300px;"><canvas id="chart-pie"></canvas></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- LOGS TAB -->
-                <div id="content-logs" class="tab-content hidden">
-                    <div class="bg-white shadow rounded-2xl border border-gray-100 overflow-hidden">
-                        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h3 class="text-base font-semibold text-gray-900">Full Activity Log</h3>
-                            <button onclick="refreshData()" class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
-                                <i data-lucide="refresh-cw" class="w-4 h-4 text-gray-600"></i>
-                            </button>
+                <div id="content-logs" class="tab-content fade-in">
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h2>Full Activity Log</h2>
+                            <button onclick="refreshData()" class="action-icon"><i data-lucide="refresh-cw" style="width: 16px;"></i></button>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                        <div style="overflow-x: auto;">
+                            <table style="table-layout: fixed; width: 100%; border-collapse: collapse;">
+                                <colgroup>
+                                    <col style="width: 160px;">
+                                    <col style="width: 200px;">
+                                    <col style="width: auto;">
+                                    <col style="width: 120px;">
+                                </colgroup>
+                                <thead>
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Time</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sender</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Message</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th style="text-align: left; padding: 1rem;">TIME</th>
+                                        <th style="text-align: left; padding: 1rem;">SENDER</th>
+                                        <th style="text-align: left; padding: 1rem;">MESSAGE</th>
+                                        <th style="text-align: right; padding: 1rem;">STATUS</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-100" id="full-log-list">
+                                <tbody id="full-log-list">
                                     <!-- Full logs will be injected here -->
                                 </tbody>
                             </table>
@@ -170,210 +177,109 @@
                 </div>
 
                 <!-- GUIDE TAB -->
-                <div id="content-guide" class="tab-content hidden">
-                    <div class="bg-white shadow rounded-2xl border border-gray-100 p-8 max-w-3xl mx-auto">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Integration Guide</h2>
-                        <div class="prose prose-blue text-gray-600 space-y-6">
+                <div id="content-guide" class="tab-content fade-in">
+                    <div class="table-card" style="padding: 3rem; max-width: 1000px; margin: 0 auto;">
+                        <div style="border-bottom: 2px solid var(--border); padding-bottom: 2rem; margin-bottom: 3rem;">
+                            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">Deployment & Setup Guide</h2>
+                            <p style="color: var(--text-muted); font-size: 1.125rem;">Ikuti langkah-langkah di bawah ini untuk menjalankan sistem WA Classifier di server atau mesin lokal Anda menggunakan Docker.</p>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 3rem;">
+                            
+                            <!-- STEP 1: PREREQUISITES -->
                             <section>
-                                <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">1</span>
-                                    Setup Database
-                                </h3>
-                                <p class="mt-2 ml-8">Pastikan PostgreSQL sudah berjalan sesuai dengan konfigurasi di <code>docker-compose.yml</code>.</p>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">1</div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700;">Prasyarat Sistem</h3>
+                                </div>
+                                <div style="padding-left: 3rem;">
+                                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Pastikan perangkat Anda sudah terinstall komponen berikut:</p>
+                                    <ul style="list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <li style="display: flex; align-items: center; gap: 0.75rem; background: var(--bg-main); padding: 1rem; border-radius: 0.75rem;">
+                                            <i data-lucide="container" style="color: var(--primary); width: 20px;"></i>
+                                            <span>Docker & Docker Compose</span>
+                                        </li>
+                                        <li style="display: flex; align-items: center; gap: 0.75rem; background: var(--bg-main); padding: 1rem; border-radius: 0.75rem;">
+                                            <i data-lucide="brain-circuit" style="color: var(--primary); width: 20px;"></i>
+                                            <span>Ollama AI (Local)</span>
+                                        </li>
+                                    </ul>
+                                </div>
                             </section>
+
+                            <!-- STEP 2: CONFIGURATION -->
                             <section>
-                                <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">2</span>
-                                    Import Logger
-                                </h3>
-                                <p class="mt-2 ml-8">Tambahkan kode berikut ke bagian atas <code>index.js</code>:</p>
-                                <pre class="bg-gray-900 text-gray-300 p-4 rounded-xl mt-2 text-sm overflow-x-auto">const { saveLog } = require('./database');</pre>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">2</div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700;">Konfigurasi Environment</h3>
+                                </div>
+                                <div style="padding-left: 3rem;">
+                                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Salin file <code>.env.example</code> menjadi <code>.env</code> dan sesuaikan kredensial database Anda.</p>
+                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem; line-height: 1.7;">
+                                        DB_USER=postgres<br>
+                                        DB_PASSWORD=yourpassword<br>
+                                        DB_NAME=wa_classifier<br>
+                                        OLLAMA_URL=http://host.docker.internal:11434
+                                    </div>
+                                </div>
                             </section>
+
+                            <!-- STEP 3: DEPLOYMENT -->
                             <section>
-                                <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">3</span>
-                                    Log Pesan
-                                </h3>
-                                <p class="mt-2 ml-8">Panggil <code>saveLog</code> setelah proses filter AI/Keyword selesai:</p>
-                                <pre class="bg-gray-900 text-gray-300 p-4 rounded-xl mt-2 text-sm overflow-x-auto">await saveLog({
-  sender: msg.from,
-  sender_name: contact.pushname,
-  message: msg.body,
-  classification: isSpam ? 'JOKI' : 'SAFE',
-  reason: filterType
-});</pre>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">3</div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700;">Menjalankan Sistem</h3>
+                                </div>
+                                <div style="padding-left: 3rem;">
+                                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Gunakan satu perintah untuk membangun dan menjalankan semua layanan (Database, Engine, Dashboard).</p>
+                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                                        <code>docker compose up -d --build</code>
+                                        <i data-lucide="copy" style="width: 18px; cursor: pointer; opacity: 0.5;"></i>
+                                    </div>
+                                </div>
                             </section>
+
+                            <!-- STEP 4: AUTHENTICATION -->
+                            <section>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;">4</div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700;">Autentikasi WhatsApp</h3>
+                                </div>
+                                <div style="padding-left: 3rem;">
+                                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Pantau log docker untuk mendapatkan QR Code, lalu scan menggunakan aplikasi WhatsApp Anda.</p>
+                                    <div style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 1rem; font-family: monospace; font-size: 0.875rem;">
+                                        <span style="color: #94a3b8;"># Lihat log bot</span><br>
+                                        docker logs -f wa-filter-bot
+                                    </div>
+                                    <div style="margin-top: 1rem; padding: 1rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.75rem; display: flex; gap: 1rem; align-items: center;">
+                                        <i data-lucide="info" style="color: #d97706;"></i>
+                                        <p style="font-size: 0.875rem; color: #92400e;">Setelah scan berhasil, sesi akan disimpan secara permanen di folder <code>wa_sessions</code>.</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- STEP 5: VERIFICATION -->
+                            <section>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div style="width: 32px; height: 32px; background: #10b981; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i data-lucide="check" style="width: 18px;"></i></div>
+                                    <h3 style="font-size: 1.25rem; font-weight: 700;">Verifikasi Berhasil</h3>
+                                </div>
+                                <div style="padding-left: 3rem;">
+                                    <p style="color: var(--text-muted);">Buka dashboard di <code>http://localhost:3000</code>. Status akan berubah menjadi <b>Live Engine</b> dan sistem siap menyaring pesan otomatis.</p>
+                                </div>
+                            </section>
+
                         </div>
                     </div>
                 </div>
 
-            </div>
-        </main>
+
+
+            </main>
+        </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        lucide.createIcons();
-        const socket = io();
-        let trendChart, pieChart;
-
-        // Stats cache
-        let statsData = { total: 0, safe: 0, joki: 0, skip: 0 };
-
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            document.getElementById('content-' + tabId).classList.remove('hidden');
-            
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active', 'text-gray-900'));
-            document.getElementById('tab-' + tabId).classList.add('tab-active');
-
-            if (tabId === 'analytics') {
-                renderCharts();
-            }
-        }
-
-        function updateStatUI() {
-            document.getElementById('stat-total').innerText = statsData.total;
-            document.getElementById('stat-safe').innerText = statsData.safe;
-            document.getElementById('stat-joki').innerText = statsData.joki;
-            document.getElementById('stat-skip').innerText = statsData.skip;
-        }
-
-        function createLogRow(log, isNew = false) {
-            return `
-                <tr class="${isNew ? 'bg-blue-50 animate-pulse' : ''} transition-all duration-1000">
-                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${new Date(log.timestamp).toLocaleString()}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${log.sender_name || 'Anon'}</div>
-                        <div class="text-xs text-gray-500">${log.sender}</div>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">${log.message}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold uppercase ${log.classification === 'JOKI' ? 'status-joki' : log.classification === 'SAFE' ? 'status-safe' : 'status-skip'}">
-                            ${log.classification}
-                        </span>
-                    </td>
-                </tr>
-            `;
-        }
-
-        function createMiniLogRow(log) {
-            return `
-                <li class="px-6 py-4 hover:bg-gray-50 transition-all duration-500 border-l-4 ${log.classification === 'JOKI' ? 'border-red-400' : 'border-green-400'}">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center min-w-0">
-                            <div class="h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center ${log.classification === 'JOKI' ? 'bg-red-50' : 'bg-green-50'}">
-                                <i data-lucide="${log.classification === 'JOKI' ? 'shield-alert' : 'shield-check'}" class="w-5 h-5 ${log.classification === 'JOKI' ? 'text-red-500' : 'text-green-500'}"></i>
-                            </div>
-                            <div class="ml-4 truncate">
-                                <p class="text-sm font-semibold text-gray-900">${log.sender_name || 'Anonymous'}</p>
-                                <p class="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-md">${log.message}</p>
-                            </div>
-                        </div>
-                        <div class="ml-6">
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${log.classification === 'JOKI' ? 'status-joki' : log.classification === 'SAFE' ? 'status-safe' : 'status-skip'}">
-                                ${log.classification}
-                            </span>
-                        </div>
-                    </div>
-                </li>
-            `;
-        }
-
-        async function refreshData() {
-            try {
-                const statsRes = await fetch('/api/stats');
-                statsData = await statsRes.json();
-                updateStatUI();
-
-                const logsRes = await fetch('/api/logs');
-                const logs = await logsRes.json();
-                
-                document.getElementById('mini-log-list').innerHTML = logs.slice(0, 5).map(createMiniLogRow).join('') || '<li class="p-8 text-center text-gray-500">No logs found.</li>';
-                document.getElementById('full-log-list').innerHTML = logs.map(l => createLogRow(l)).join('');
-                
-                lucide.createIcons();
-            } catch (err) {
-                console.error('Failed to fetch data:', err);
-            }
-        }
-
-        // LISTEN FOR REAL-TIME UPDATES
-        socket.on('new-log', (log) => {
-            // Update stats
-            statsData.total++;
-            if (log.classification === 'SAFE') statsData.safe++;
-            else if (log.classification === 'JOKI') statsData.joki++;
-            else if (log.classification === 'SKIP') statsData.skip++;
-            updateStatUI();
-
-            // Prepend to mini log
-            const miniLogList = document.getElementById('mini-log-list');
-            if (miniLogList.innerHTML.includes('No logs found')) miniLogList.innerHTML = '';
-            const newMiniItem = document.createElement('div');
-            newMiniItem.innerHTML = createMiniLogRow(log);
-            miniLogList.prepend(newMiniItem.firstElementChild);
-            if (miniLogList.children.length > 5) miniLogList.lastElementChild.remove();
-
-            // Prepend to full log
-            const fullLogList = document.getElementById('full-log-list');
-            const newRow = document.createElement('tbody');
-            newRow.innerHTML = createLogRow(log, true);
-            fullLogList.prepend(newRow.firstElementChild);
-            
-            // Remove pulse after 2 seconds
-            setTimeout(() => {
-                fullLogList.firstElementChild.classList.remove('bg-blue-50', 'animate-pulse');
-            }, 2000);
-
-            lucide.createIcons();
-            
-            // Update charts if in analytics tab
-            if (!document.getElementById('content-analytics').classList.contains('hidden')) {
-                renderCharts();
-            }
-        });
-
-        async function renderCharts() {
-            try {
-                const res = await fetch('/api/analytics');
-                const data = await res.json();
-                
-                const labels = data.map(d => d.hour);
-                const safeData = data.map(d => d.safe);
-                const jokiData = data.map(d => d.joki);
-
-                if (trendChart) trendChart.destroy();
-                trendChart = new Chart(document.getElementById('chart-trends'), {
-                    type: 'line',
-                    data: {
-                        labels,
-                        datasets: [
-                            { label: 'Safe', data: safeData, borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.4 },
-                            { label: 'Joki', data: jokiData, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }
-                        ]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
-
-                if (pieChart) pieChart.destroy();
-                pieChart = new Chart(document.getElementById('chart-pie'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Safe', 'Joki', 'Skip'],
-                        datasets: [{
-                            data: [statsData.safe, statsData.joki, statsData.skip],
-                            backgroundColor: ['#22c55e', '#ef4444', '#f59e0b']
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
-                });
-            } catch (err) {
-                console.error('Failed to render charts:', err);
-            }
-        }
-
-        refreshData();
-    </script>
+    <!-- App Logic -->
+    <script src="app.js"></script>
 </body>
 </html>
