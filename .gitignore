@@ -31,3 +31,5 @@ task.md
 .gemini/
 brain/
 knowledge/
+ARCHITECTURE.md
+tests/

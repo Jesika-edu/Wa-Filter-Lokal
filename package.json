@@ -2,8 +2,12 @@
   "name": "wa-ai-lokal",
   "version": "1.0.0",
   "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test:accuracy": "node tests/test_akurasi.js"
+  },
   "dependencies": {
-    "axios": "^1.16.0",
+    "axios": "^1.16.1",
     "cors": "^2.8.6",
     "dotenv": "^16.3.1",
     "express": "^5.2.1",
