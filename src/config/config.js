@@ -13,6 +13,7 @@ module.exports = {
     // AI Config
     ai: {
         ollamaUrl: process.env.OLLAMA_URL || 'http://host.docker.internal:11434/api/generate',
+        ollamaTesting: process.env.ollamaTesting || 'http://localhost:11434/api/generate',
         model: 'qwen2.5:7b',
     },
     
